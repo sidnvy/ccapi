@@ -35,6 +35,10 @@ def process_events(events: List[Event], data_dir: str, schema: pa.Schema, exchan
 
         for (exchange, market) in exchange_market_pairs:
             data_buffer_arrays = {k: pa.array(v) for k, v in data_buffers[(exchange, market)].items()}
+            if not data_buffer_arrays['timestamp']:
+                print(f"No data collected for {exchange}/{market}")
+                continue
+            
             record_batch = pa.RecordBatch.from_arrays(list(data_buffer_arrays.values()), schema=schema)
             table = pa.Table.from_batches([record_batch], schema=schema)
 
@@ -48,7 +52,6 @@ def process_events(events: List[Event], data_dir: str, schema: pa.Schema, exchan
             first_timestamp = data_buffer_arrays['timestamp'][0].as_py()
             output_file = os.path.join(output_path, f"{first_timestamp}.parquet")
 
-
             if data_dir.startswith("s3://"):
                 with fs.open_output_stream(output_file) as out:
                     pq.write_table(table, out, compression="snappy")
@@ -56,7 +59,7 @@ def process_events(events: List[Event], data_dir: str, schema: pa.Schema, exchan
                 pq.write_table(table, output_file, compression="snappy")
 
             print(f"Table written for {exchange}/{market} at {time.time()}")
-            
+
     except Exception:
         print(traceback.format_exc())
         sys.exit(1)
