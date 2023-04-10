@@ -16,7 +16,7 @@ COPY . .
 COPY binding/user_specified_cmake_include.cmake.example /app/user_specified_cmake_include.cmake
 
 # Uncomment all lines except those containing "FIX" and "EXECUTION_MANAGEMENT"
-RUN sed -i'' -E '/(FIX|EXECUTION|TRACE|DEBUG|INFO)/! s/^# //' binding/user_specified_cmake_include.cmake
+RUN sed -i'' -E '/(FIX|EXECUTION|TRACE|DEBUG|INFO)/! s/^# //' /app/user_specified_cmake_include.cmake
 
 # Build the ccapi library with Python bindings
 RUN mkdir -p binding/build && \
