@@ -3,43 +3,61 @@ import sys
 import time
 from typing import List
 import traceback
-from datetime import datetime
-from ccapi import EventHandler, SessionOptions, SessionConfigs, Session, Subscription, Event, SubscriptionList
+from ccapi import (
+    SessionOptions,
+    SessionConfigs,
+    Session,
+    Subscription,
+    Event,
+    SubscriptionList,
+)
 from dateutil.parser import parse
 import pyarrow as pa
-from pyarrow import dataset as ds
 
 import pyarrow.parquet as pq
 from pyarrow.fs import S3FileSystem
 
-def process_events(events: List[Event], data_dir: str, schema: pa.Schema, exchange_market_pairs: List[tuple]):
+
+def process_events(
+    events: List[Event],
+    data_dir: str,
+    schema: pa.Schema,
+    exchange_market_pairs: List[tuple],
+):
     try:
-        data_buffers = {pair: {col_name: [] for col_name in schema.names} for pair in exchange_market_pairs}
+        data_buffers = {
+            pair: {col_name: [] for col_name in schema.names}
+            for pair in exchange_market_pairs
+        }
 
         for event in events:
             if event.getType() == Event.Type_SUBSCRIPTION_DATA:
                 for message in event.getMessageList():
-                    exchange, market = message.getCorrelationIdList()[0].split(',')
+                    exchange, market = message.getCorrelationIdList()[0].split(",")
                     timestamp_start = parse(message.getTimeISO())
 
                     bid_element, ask_element = message.getElementList()
-                    bid_elementNameValueMap = bid_element.getNameValueMap()
-                    ask_elementNameValueMap = ask_element.getNameValueMap()
+                    bid_element.getNameValueMap()
+                    ask_element.getNameValueMap()
 
                     buffer = data_buffers[(exchange, market)]
-                    buffer['timestamp'].append(int(timestamp_start.timestamp() * 1e9))
-                    buffer['bid_price'].append(bid_element.getValue('BID_PRICE'))
-                    buffer['ask_price'].append(ask_element.getValue('ASK_PRICE'))
-                    buffer['bid_size'].append(bid_element.getValue('BID_SIZE'))
-                    buffer['ask_size'].append(ask_element.getValue('ASK_SIZE'))
+                    buffer["timestamp"].append(int(timestamp_start.timestamp() * 1e9))
+                    buffer["bid_price"].append(bid_element.getValue("BID_PRICE"))
+                    buffer["ask_price"].append(ask_element.getValue("ASK_PRICE"))
+                    buffer["bid_size"].append(bid_element.getValue("BID_SIZE"))
+                    buffer["ask_size"].append(ask_element.getValue("ASK_SIZE"))
 
-        for (exchange, market) in exchange_market_pairs:
-            data_buffer_arrays = {k: pa.array(v) for k, v in data_buffers[(exchange, market)].items()}
-            if not data_buffer_arrays['timestamp']:
+        for exchange, market in exchange_market_pairs:
+            data_buffer_arrays = {
+                k: pa.array(v) for k, v in data_buffers[(exchange, market)].items()
+            }
+            if not data_buffer_arrays["timestamp"]:
                 print(f"No data collected for {exchange}/{market}")
                 continue
-            
-            record_batch = pa.RecordBatch.from_arrays(list(data_buffer_arrays.values()), schema=schema)
+
+            record_batch = pa.RecordBatch.from_arrays(
+                list(data_buffer_arrays.values()), schema=schema
+            )
             table = pa.Table.from_batches([record_batch], schema=schema)
 
             output_path = os.path.join(data_dir, exchange, market)
@@ -49,7 +67,7 @@ def process_events(events: List[Event], data_dir: str, schema: pa.Schema, exchan
             else:
                 os.makedirs(output_path, exist_ok=True)
 
-            first_timestamp = data_buffer_arrays['timestamp'][0].as_py()
+            first_timestamp = data_buffer_arrays["timestamp"][0].as_py()
             output_file = os.path.join(output_path, f"{first_timestamp}.parquet")
 
             if data_dir.startswith("s3://"):
@@ -60,16 +78,19 @@ def process_events(events: List[Event], data_dir: str, schema: pa.Schema, exchan
 
             print(f"Table written for {exchange}/{market} at {time.time()}")
 
+        human_readable_size = pa.format_size(pa.total_allocated_bytes())
+        print(f"Total allocated bytes: {human_readable_size}")
+
     except Exception:
         print(traceback.format_exc())
         sys.exit(1)
 
 
 def main():
-    exchanges = os.getenv('EXCHANGES', 'binance-usds-futures').split(',')
-    markets = os.getenv('MARKETS', 'ethusdt,btcusdt,bnbusdt').split(',')
-    collect_interval = int(os.getenv('COLLECT_INTERVAL', 60 * 60))
-    data_dir = os.getenv('DATA_DIR', 'file:///data')
+    exchanges = os.getenv("EXCHANGES", "binance-usds-futures").split(",")
+    markets = os.getenv("MARKETS", "ethusdt,btcusdt,bnbusdt").split(",")
+    collect_interval = int(os.getenv("COLLECT_INTERVAL", 60 * 60))
+    data_dir = os.getenv("DATA_DIR", "file:///data")
 
     option = SessionOptions()
     config = SessionConfigs()
@@ -79,19 +100,26 @@ def main():
     exchange_market_pairs = []
     for exchange in exchanges:
         for market in markets:
-            correlation_id = ','.join([exchange, market])
-            subscription = Subscription(exchange, market.upper(), 'MARKET_DEPTH', 'MARKET_DEPTH_MAX=1', correlation_id)
+            correlation_id = ",".join([exchange, market])
+            subscription = Subscription(
+                exchange,
+                market.upper(),
+                "MARKET_DEPTH",
+                "MARKET_DEPTH_MAX=1",
+                correlation_id,
+            )
             subscriptionList.append(subscription)
             exchange_market_pairs.append((exchange, market))
 
-    schema = pa.schema([
-       
-        ('timestamp', pa.int64()),
-        ('bid_price', pa.float64()),
-        ('ask_price', pa.float64()),
-        ('bid_size', pa.float64()),
-        ('ask_size', pa.float64()),
-    ])
+    schema = pa.schema(
+        [
+            ("timestamp", pa.int64()),
+            ("bid_price", pa.float64()),
+            ("ask_price", pa.float64()),
+            ("bid_size", pa.float64()),
+            ("ask_size", pa.float64()),
+        ]
+    )
 
     session.subscribe(subscriptionList)
     try:
@@ -101,9 +129,8 @@ def main():
             process_events(events, data_dir, schema, exchange_market_pairs)
     except KeyboardInterrupt:
         session.stop()
-        print('Bye')
+        print("Bye")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
