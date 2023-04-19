@@ -1,8 +1,10 @@
 import os
 import sys
 import time
-from typing import List
 import traceback
+from datetime import datetime
+from typing import List
+import pandas as pd
 from ccapi import (
     SessionOptions,
     SessionConfigs,
@@ -13,9 +15,22 @@ from ccapi import (
 )
 from dateutil.parser import parse
 import pyarrow as pa
-
 import pyarrow.parquet as pq
 from pyarrow.fs import S3FileSystem
+
+
+def get_current_utc_day():
+    return datetime.utcnow().date()
+
+def write_temp_arrow_file(record_batch: pa.RecordBatch, temp_folder: str) -> str:
+    timestamp_ns = record_batch.column('timestamp')[0].as_py()
+    temp_file = os.path.join(temp_folder, f"{timestamp_ns}.arrow")
+
+    with pa.OSFile(temp_file, 'wb') as sink:
+        with pa.ipc.new_file(sink, record_batch.schema) as writer:
+            writer.write(record_batch)
+
+    return temp_file
 
 
 def process_events(
@@ -47,7 +62,12 @@ def process_events(
                     buffer["bid_size"].append(bid_element.getValue("BID_SIZE"))
                     buffer["ask_size"].append(ask_element.getValue("ASK_SIZE"))
 
+        current_day = get_current_utc_day()
+
         for exchange, market in exchange_market_pairs:
+            temp_folder = os.path.join("temp_folder", exchange, market)
+            os.makedirs(temp_folder, exist_ok=True)
+
             data_buffer_arrays = {
                 k: pa.array(v) for k, v in data_buffers[(exchange, market)].items()
             }
@@ -58,28 +78,48 @@ def process_events(
             record_batch = pa.RecordBatch.from_arrays(
                 list(data_buffer_arrays.values()), schema=schema
             )
-            table = pa.Table.from_batches([record_batch], schema=schema)
+            write_temp_arrow_file(record_batch, temp_folder)
+            temp_files = [
+                os.path.join(temp_folder, f)
+                for f in os.listdir(temp_folder)
+                if f.endswith(".arrow")
+            ]
 
-            output_path = os.path.join(data_dir, exchange, market)
-            if data_dir.startswith("s3://"):
-                fs = S3FileSystem()
-                fs.mkdir(output_path, recursive=True)
-            else:
-                os.makedirs(output_path, exist_ok=True)
+            last_timestamp = pd.to_datetime(
+                data_buffer_arrays["timestamp"][-1].as_py()
+            ).date()
+            if last_timestamp > current_day:
+                tables = []
+                for file in temp_files:
+                    with pa.memory_map(file, "rb") as source:
+                        reader = pa.ipc.open_file(source)
+                        table = reader.read_all()
+                        tables.append(table)
 
-            first_timestamp = data_buffer_arrays["timestamp"][0].as_py()
-            output_file = os.path.join(output_path, f"{first_timestamp}.parquet")
+                merged_table = pa.concat_tables(tables)
 
-            if data_dir.startswith("s3://"):
-                with fs.open_output_stream(output_file) as out:
-                    pq.write_table(table, out, compression="snappy")
-            else:
-                pq.write_table(table, output_file, compression="snappy")
+                output_path = os.path.join(data_dir, exchange, market)
+                if data_dir.startswith("s3://"):
+                    fs = S3FileSystem()
+                    fs.mkdir(output_path, recursive=True)
+                else:
+                    os.makedirs(output_path, exist_ok=True)
+
+                pq.write_table(
+                    merged_table,
+                    os.path.join(
+                        output_path,
+                        f'output_daily_{current_day.strftime("%Y%m%d")}.parquet',
+                    ),
+                    compression="snappy",
+                )
+
+                for file in temp_files:
+                    os.remove(file)
+
+                current_day = get_current_utc_day()
 
             print(f"Table written for {exchange}/{market} at {time.time()}")
-
-        human_readable_size = pa.format_size(pa.total_allocated_bytes())
-        print(f"Total allocated bytes: {human_readable_size}")
 
     except Exception:
         print(traceback.format_exc())
