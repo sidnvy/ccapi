@@ -22,11 +22,12 @@ from pyarrow.fs import S3FileSystem
 def get_current_utc_day():
     return datetime.utcnow().date()
 
+
 def write_temp_arrow_file(record_batch: pa.RecordBatch, temp_folder: str) -> str:
-    timestamp_ns = record_batch.column('timestamp')[0].as_py()
+    timestamp_ns = record_batch.column("timestamp")[0].as_py()
     temp_file = os.path.join(temp_folder, f"{timestamp_ns}.arrow")
 
-    with pa.OSFile(temp_file, 'wb') as sink:
+    with pa.OSFile(temp_file, "wb") as sink:
         with pa.ipc.new_file(sink, record_batch.schema) as writer:
             writer.write(record_batch)
 
