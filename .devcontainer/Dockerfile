@@ -1,27 +1,37 @@
 FROM mcr.microsoft.com/devcontainers/universal:2-linux
-# Install dependencies
+# Install the required packages for building Python with shared library support
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends swig cmake zlib1g-dev libssl-dev build-essential && \
-    rm -rf /var/lib/apt/lists/*  
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        libssl-dev \
+        zlib1g-dev \
+        libncurses5-dev \
+        libncursesw5-dev \
+        libreadline-dev \
+        libsqlite3-dev \
+        libffi-dev \
+        libbz2-dev \
+        liblzma-dev \
+        tk-dev \
+        uuid-dev
 
-# Set the working directory
-WORKDIR /app
+# Download and extract Python 3.10 source code
+RUN cd /tmp && \
+    curl -O https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz && \
+    tar -xzf Python-3.10.0.tgz && \
+    cd Python-3.10.0
 
-# Copy the entire 'ccapi' directory into the container
-COPY . .
+# Configure, build and install Python with shared library support
+RUN cd /tmp/Python-3.10.0 && \
+    ./configure --enable-shared && \
+    make && \
+    make install
 
-RUN rm -fr binding/build
+# Clean up the temporary files
+RUN rm -rf /tmp/*
 
-# Prepare the user_specified_cmake_include.cmake file
-COPY binding/user_specified_cmake_include.cmake.example /app/user_specified_cmake_include.cmake
-
-# Uncomment all lines except those containing "FIX" and "EXECUTION_MANAGEMENT"
-RUN sed -i'' -E '/(FIX|EXECUTION|TRACE|DEBUG|INFO)/! s/^# //' /app/user_specified_cmake_include.cmake
+# Set the default Python version to 3.10
+RUN update-alternatives --install /usr/bin/python python /usr/local/bin/python3.10 1
 
 # Build the ccapi library with Python bindings
-RUN mkdir -p binding/build && \
-    cd binding/build && \
-    cmake -DCMAKE_PROJECT_INCLUDE=/app/user_specified_cmake_include.cmake -DBUILD_VERSION=latest -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON .. && \
-    cmake --build . && \
-    cmake --install . &&\
-    pip install --no-cache-dir python-dateutil pyarrow boto3 clickhouse-driver
+RUN pip install --no-cache-dir python-dateutil pyarrow boto3 clickhouse-driver
