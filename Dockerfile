@@ -1,5 +1,5 @@
 # First stage: build the ccapi library with Python bindings
-FROM python:3.9-slim-bullseye AS builder
+FROM python:3.11-slim-bullseye AS builder
 
 # Install dependencies
 RUN apt-get update && \
@@ -26,20 +26,20 @@ RUN mkdir -p binding/build && \
     cmake --install .
 
 # Second stage: create the final image with necessary runtime dependencies
-FROM python:3.9-slim-bullseye
+FROM python:3.11-slim-bullseye
 
 # Install necessary runtime dependencies and additional Python packages
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libssl1.1 && \
     rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir python-dateutil pyarrow boto3
+    pip install --no-cache-dir python-dateutil pyarrow boto3 clickhouse-driver
 
 # Copy Python bindings and libraries from the builder stage
-COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/lib /usr/local/lib
 
 # Set environment variable for Python bindings
-ENV PYTHONPATH="/usr/local/lib/python3.9/site-packages:${PYTHONPATH}"
+ENV PYTHONPATH="/usr/local/lib/python3.11/site-packages:${PYTHONPATH}"
 
 # Copy the collector.py script to the container
 COPY collector.py /app/collector.py
