@@ -21,7 +21,7 @@ RUN sed -i'' -E '/(FIX|EXECUTION|TRACE|DEBUG|INFO)/! s/^# //' /app/user_specifie
 # Build the ccapi library with Python bindings
 RUN mkdir -p binding/build && \
     cd binding/build && \
-    cmake -DCMAKE_PROJECT_INCLUDE=/app/user_specified_cmake_include.cmake -DBUILD_VERSION=latest -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON .. && \
+    cmake -DCMAKE_PROJECT_INCLUDE=/app/user_specified_cmake_include.cmake -DBUILD_VERSION=0.1 -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON .. && \
     cmake --build . && \
     cmake --install .
 
