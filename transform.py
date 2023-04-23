@@ -45,7 +45,7 @@ EXCHANGE_MARKET_TO_UNIFIED_SYMBOL = {
     "huobi-usdt-swap": lambda e: f"{e['INSTRUMENT']}-USDT-PERP",
     "ascendex": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",
     "kucoin": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",
-    # "bitget-futures": lambda e: "", #######
+    "bitget-futures": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-PERP",
     "kucoin-futures": kucoin_futures_transform,
     "bitget": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",
     "bitmart": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",
@@ -57,7 +57,7 @@ EXCHANGE_MARKET_TO_UNIFIED_SYMBOL = {
     "mexc": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-PERP",
     # "bitmex": lambda e: f"{e['ERROR_MESSAGE']}",
     "binance-coin-futures": lambda e: f"{e['MARGIN_ASSET']}-{e['UNDERLYING_SYMBOL'].lstrip(e['MARGIN_ASSET'])}-PERP",
-    # "deribit": lambda e: f"{e['ERROR_MESSAGE']['error']['message']}",
+    "deribit": lambda e: f"{e['UNDERLYING_SYMBOL']}-USDC-PERP",
     "huobi": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",
     "gateio": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",
     "binance": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",

@@ -91,6 +91,19 @@ def filter_markets(exchanges: List[str], filter: str) -> Dict[str, Dict[str, str
                     "instType": "SPOT",
                 }
             )
+        elif ex == "bitget-futures":
+            request.appendParam(
+                {
+                    "productType": "umcbl",
+                }
+            )
+        elif ex == "deribit":
+            request.appendParam(
+                {
+                    "currency": "USDC",
+                }
+            )
+
         session.sendRequest(request)
     time.sleep(5)
     session.stop()
