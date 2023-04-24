@@ -54,7 +54,7 @@ EXCHANGE_MARKET_TO_UNIFIED_SYMBOL = {
     "bitstamp": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",
     # "gateio-perpetual-futures": lambda e: f"{e['ERROR_MESSAGE']['label']}",
     "coinbase": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",
-    "mexc": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-PERP",
+    "mexc": lambda e: f"{e['BASE_ASSET']}-{e['QUOTE_ASSET']}-SPOT",
     # "bitmex": lambda e: f"{e['ERROR_MESSAGE']}",
     "binance-coin-futures": lambda e: f"{e['MARGIN_ASSET']}-{e['UNDERLYING_SYMBOL'].lstrip(e['MARGIN_ASSET'])}-PERP",
     "deribit": lambda e: f"{e['UNDERLYING_SYMBOL']}-USDC-PERP",
