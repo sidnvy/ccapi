@@ -30,8 +30,7 @@ class MyEventHandler : public EventHandler {
             }
           }
           srcDataReceived = true;
-        }
-        if (correlationId == "d") {
+        } else if (correlationId == "d") {
           for (const auto& element : message.getElementList()) {
             if (element.has("BID_PRICE")) {
               bestBidPriceDst = element.getValue("BID_PRICE");
@@ -59,11 +58,8 @@ class MyEventHandler : public EventHandler {
             });
             requestList.emplace_back(std::move(request));
             makerOrderPlaced = true;
-          }
-        
-
-          if (opportunityExists2 && !makerOrderPlaced) {
-            APP_LOGGER_INFO("opportunityExists2: " + std::to_string(spread1));
+          } else if (opportunityExists2 && !makerOrderPlaced) {
+            APP_LOGGER_INFO("opportunityExists2: " + std::to_string(spread2));
             Request request(Request::Operation::CREATE_ORDER, srcExchange, instrumentRest);
             request.appendParam({
                 {"SIDE", "SELL"},
@@ -72,9 +68,7 @@ class MyEventHandler : public EventHandler {
             });
             requestList.emplace_back(std::move(request));
             makerOrderPlaced = true;
-          }
-
-          if ((!opportunityExists1 || !opportunityExists2) && makerOrderPlaced) {
+          } else if ((!opportunityExists1 && !opportunityExists2) && makerOrderPlaced) {
             APP_LOGGER_INFO("opportunity no longer exists, canceling order");
             Request request(Request::Operation::CANCEL_ORDER, srcExchange, instrumentRest);
             request.appendParam({{"ORDER_ID", makerOrderId}});
