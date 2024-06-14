@@ -160,6 +160,9 @@
 #ifndef CCAPI_EXCHANGE_NAME_WHITEBIT
 #define CCAPI_EXCHANGE_NAME_WHITEBIT "whitebit"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_HYPERLIQUID
+#define CCAPI_EXCHANGE_NAME_HYPERLIQUID "hyperliquid"
+#endif
 #ifndef CCAPI_LAST_PRICE
 #define CCAPI_LAST_PRICE "LAST_PRICE"
 #endif
@@ -382,6 +385,8 @@
 #define CCAPI_WEBSOCKET_MEXC_FUTURES_CHANNEL_DEPTH "depth"
 #define CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_TRADES "trades"
 #define CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_DEPTH "depth"
+#define CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_MARKET_TRADES "trades"
+#define CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_MARKET_DEPTH "l2Book"
 #ifndef CCAPI_CHANNEL_ID
 #define CCAPI_CHANNEL_ID "channelId"
 #endif
@@ -796,6 +801,9 @@
 #ifndef CCAPI_WHITEBIT_URL_REST_BASE
 #define CCAPI_WHITEBIT_URL_REST_BASE "https://whitebit.com"
 #endif
+#ifndef CCAPI_HYPERLIQUID_URL_REST_BASE
+#define CCAPI_HYPERLIQUID_URL_REST_BASE "https://api.hyperliquid.xyz"
+#endif
 // end: exchange REST urls
 
 // start: exchange WS urls
@@ -918,6 +926,9 @@
 #endif
 #ifndef CCAPI_WHITEBIT_URL_WS_BASE
 #define CCAPI_WHITEBIT_URL_WS_BASE "wss://api.whitebit.com"
+#endif
+#ifndef CCAPI_HYPERLIQUID_URL_WS_BASE
+#define CCAPI_HYPERLIQUID_URL_WS_BASE "wss://api.hyperliquid.xyz"
 #endif
 // end: exchange WS urls
 

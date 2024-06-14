@@ -183,6 +183,10 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_DEPTH},
     };
+    std::map<std::string, std::string> fieldWebsocketChannelMapHyperliquid = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_MARKET_TRADES},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_MARKET_DEPTH},
+    };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -282,6 +286,9 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapWhitebit) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_WHITEBIT].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapHyperliquid) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_HYPERLIQUID].push_back(fieldWebsocketChannel.first);
+    }
     for (auto& x : this->exchangeFieldMap) {
       x.second.push_back(CCAPI_GENERIC_PUBLIC_SUBSCRIPTION);
     }
@@ -320,6 +327,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_MEXC, fieldWebsocketChannelMapMexc},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, fieldWebsocketChannelMapMexcFutures},
         {CCAPI_EXCHANGE_NAME_WHITEBIT, fieldWebsocketChannelMapWhitebit},
+        {CCAPI_EXCHANGE_NAME_HYPERLIQUID, fieldWebsocketChannelMapHyperliquid},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
@@ -358,6 +366,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_MEXC, CCAPI_MEXC_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_WHITEBIT, CCAPI_WHITEBIT_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_HYPERLIQUID, CCAPI_HYPERLIQUID_URL_WS_BASE},
     };
     this->initialSequenceByExchangeMap = {{CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
@@ -397,6 +406,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_MEXC, CCAPI_MEXC_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_WHITEBIT, CCAPI_WHITEBIT_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_HYPERLIQUID, CCAPI_HYPERLIQUID_URL_REST_BASE},
     };
   }
   void initializUrlFixBase() {
