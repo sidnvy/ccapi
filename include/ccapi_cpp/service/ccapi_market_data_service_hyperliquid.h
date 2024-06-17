@@ -14,9 +14,11 @@ class MarketDataServiceHyperliquid : public MarketDataService {
     this->setHostWsFromUrlWs(this->baseUrlWs);
     this->getInstrumentsTarget = "/info";
   }
+  virtual ~MarketDataServiceHyperliquid() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
-
+#endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
 
@@ -128,8 +130,6 @@ class MarketDataServiceHyperliquid : public MarketDataService {
         } else if (channel == "l2Book") {
           coin = data["coin"].GetString();
         }
-
-
         std::string exchangeSubscriptionId = channel + ":" + coin;
         const std::string& channelId =
             this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
@@ -182,8 +182,6 @@ class MarketDataServiceHyperliquid : public MarketDataService {
             marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             ++bidIndex;
           }
-
-
           int askIndex = 0;
           for (const auto& ask : asks.GetArray()) {
             if (askIndex >= maxMarketDepth) {
@@ -203,17 +201,86 @@ class MarketDataServiceHyperliquid : public MarketDataService {
   }
   
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
-    // Convert REST requests to Hyperliquid's API format
-    // ...
+    switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PUBLIC_REQUEST: {
+        MarketDataService::convertRequestForRestGenericPublicRequest(req, request, now, symbolId, credential);
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::post);
+        req.target(this->getInstrumentsTarget);
+        req.set(beast::http::field::content_type, "application/json");
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        document.AddMember("type", rj::Value("meta").Move(), allocator);
+        rj::StringBuffer stringBuffer;
+        rj::Writer<rj::StringBuffer> writer(stringBuffer);
+        document.Accept(writer);
+        std::string body = stringBuffer.GetString();
+        req.body() = body;
+        req.prepare_payload();
+      } break;
+      default:
+        this->convertRequestForRestCustom(req, request, now, symbolId, credential);
+    }
   }
 
-  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-    // Convert REST responses to MarketDataMessage format
-    // ...
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string>& regularizationMap, const std::map<std::string, std::string>& convertMap) {
+    for (const auto& kv : param) {
+      auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      auto value = kv.second;
+      auto it = convertMap.find(key);
+      if (it != convertMap.end()) {
+        value = it->second;
+      }
+      document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
+    }
   }
 
-  // Implement additional helper functions and WebSocket post request handling
-  // ...
+  void extractInstrumentInfoFromResponse(std::vector<Element>& elementList, const rj::Value& response) {
+    int marketId = 0;
+    for (const auto& x : response["universe"].GetArray()) {
+      Element element;
+      element.insert(CCAPI_INSTRUMENT, std::to_string(marketId));
+      element.insert(CCAPI_BASE_ASSET, x["name"].GetString());
+      element.insert(CCAPI_QUOTE_ASSET, "USDC");
+      // element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSz"].GetString());
+      int amountPrecision = std::stoi(x["szDecimals"].GetString());
+      if (amountPrecision > 0) {
+        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(amountPrecision - 1, '0') + "1");
+        element.insert(CCAPI_ORDER_QUANTITY_MIN, "0." + std::string(amountPrecision - 1, '0') + "1");
+      } else {
+        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "1");
+        element.insert(CCAPI_ORDER_QUANTITY_MIN, "1");
+      }
+      element.insert(CCAPI_MARGIN_ASSET, "USDC");
+      element.insert(CCAPI_UNDERLYING_SYMBOL, x["name"].GetString());
+      element.insert(CCAPI_CONTRACT_SIZE, "1");
+      elementList.emplace_back(element);
+      ++marketId;
+    }
+  }
+
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
+    rj::Document document;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    switch (request.getOperation()) {
+      case Request::Operation::GET_INSTRUMENTS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        this->extractInstrumentInfoFromResponse(elementList, document);
+        message.setElementList(elementList);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      default:
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
+  }
 };
 } /* namespace ccapi */
 #endif
